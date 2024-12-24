@@ -18,9 +18,11 @@ get_header();
 /* Filter Section */
 .filters { 
     margin-bottom: 30px; 
-    padding: 20px; 
-    background: #f5f5f5; 
-    border-radius: 8px; 
+    padding: 15px; 
+    background: #ffffff; 
+    border-radius: 12px; 
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #eee;
 }
 
 .filter-row { 
@@ -31,8 +33,8 @@ get_header();
 }
 
 .filter-select { 
-    padding: 8px; 
-    border-radius: 4px; 
+    padding: 12px 16px; 
+    border-radius: 8px; 
     border: 1px solid #ddd;
     flex: 1;
     min-width: 200px;
@@ -41,6 +43,26 @@ get_header();
     -moz-appearance: none;
     appearance: none;
     touch-action: manipulation;
+    background-color: #f8f9fa;
+    color: #333;
+    font-size: 15px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.filter-select:hover {
+    border-color: #bbb;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
 
 /* Year Sections */
@@ -51,7 +73,7 @@ get_header();
 .year-heading { 
     color: #333; 
     border-bottom: 2px solid #333; 
-    padding-bottom: 10px; 
+    padding: 10px 0; 
     margin-bottom: 20px; 
     display: flex; 
     justify-content: space-between; 
@@ -63,6 +85,8 @@ get_header();
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
+    min-height: 44px;
+    align-items: center;
 }
 
 .year-heading span {
@@ -152,23 +176,29 @@ get_header();
 /* Mobile Styles */
 @media screen and (max-width: 600px) {
     .filters {
-        display: none;
+        padding: 12px;
+        margin: 0 12px 20px 12px;
+        background: #ffffff;
     }
     
     .filter-row {
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
     }
     
     .filter-select {
         width: 100%;
         min-width: unset;
-        height: 44px;
+        height: 56px;
         font-size: 16px;
+        padding: 0 40px 0 16px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        margin: 4px 0;
     }
     
     .year-heading {
-        padding: 15px 0;
+        padding: 15px 5px;
     }
     
     .post-item {
@@ -187,6 +217,11 @@ get_header();
 
     .post-meta {
         margin-left: 68px;
+    }
+
+    .toggle-icon {
+        padding: 15px 10px;
+        margin: -15px 0;
     }
 }
 
@@ -313,114 +348,163 @@ get_header();
 </div>
 
 <script>
-jQuery(document).ready(function($) {
-    // Initialize all year sections as collapsed
+document.addEventListener('DOMContentLoaded', function() {
+    // Helper function to get elements
+    const $ = selector => document.querySelectorAll(selector);
+    
+    // Initialize collapsed state
     function initializeCollapsedState() {
-        $('.year-content').addClass('collapsed');
-        $('.toggle-icon').text('+');
+        $('.year-content').forEach(content => content.classList.add('collapsed'));
+        $('.toggle-icon').forEach(icon => icon.textContent = '+');
     }
     
     initializeCollapsedState();
 
     // Toggle handler function
-    function handleToggle($heading) {
-        const $content = $heading.next('.year-content');
-        const $icon = $heading.find('.toggle-icon');
+    function handleToggle(heading) {
+        const content = heading.nextElementSibling;
+        const icon = heading.querySelector('.toggle-icon');
+        const isCollapsed = content.classList.contains('collapsed');
         
-        if ($content.hasClass('collapsed')) {
-            $content.removeClass('collapsed');
-            $icon.text('-');
-        } else {
-            $content.addClass('collapsed');
-            $icon.text('+');
+        // On mobile, collapse all other sections first
+        if ('ontouchstart' in window && !isCollapsed) {
+            $('.year-content').forEach(otherContent => {
+                if (otherContent !== content) {
+                    otherContent.classList.add('collapsed');
+                    otherContent.previousElementSibling.querySelector('.toggle-icon').textContent = '+';
+                }
+            });
         }
+
+        // Toggle current section
+        content.classList.toggle('collapsed');
+        icon.textContent = isCollapsed ? '-' : '+';
     }
 
-    // Mobile vs Desktop handlers
-    if ('ontouchstart' in window) {
-        $('.year-heading').on('touchstart', function(e) {
+    // Handle year section toggling
+    $('.year-heading').forEach(heading => {
+        let touchStartY = 0;
+        let touchEndY = 0;
+
+        // Touch start handler
+        heading.addEventListener('touchstart', function(e) {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        // Touch end handler
+        heading.addEventListener('touchend', function(e) {
             e.preventDefault();
-            e.stopPropagation();
+            touchEndY = e.changedTouches[0].clientY;
             
-            $('.year-content').addClass('collapsed');
-            $('.toggle-icon').text('+');
-            
-            handleToggle($(this));
-            return false;
+            // Only trigger if it's a tap (not a scroll)
+            if (Math.abs(touchEndY - touchStartY) < 10) {
+                handleToggle(this);
+            }
+        }, { passive: false });
+
+        // Click handler for desktop
+        heading.addEventListener('click', function(e) {
+            if (!('ontouchstart' in window)) {
+                e.preventDefault();
+                handleToggle(this);
+            }
         });
-    } else {
-        $('.year-heading').on('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleToggle($(this));
-            return false;
-        });
-    }
+    });
 
     // Filter handling
-    $('.filter-select').on('change', function() {
-        const selectedCategory = $('#category-filter').val();
-        const selectedTag = $('#tag-filter').val();
+    function updateFilters() {
+        const archiveContent = document.getElementById('archive-content');
+        const selectedCategory = document.getElementById('category-filter').value;
+        const selectedTag = document.getElementById('tag-filter').value;
         
-        $('#archive-content').css('opacity', '0.6');
+        archiveContent.style.opacity = '0.6';
         
         // Reset if no filters
         if (!selectedCategory && !selectedTag) {
-            $('.post-item, .month-section, .year-section').show();
+            $('.post-item').forEach(item => item.style.display = '');
+            $('.month-section').forEach(section => section.style.display = '');
+            $('.year-section').forEach(section => section.style.display = '');
             updateCounts();
-            $('#archive-content').css('opacity', '1');
+            archiveContent.style.opacity = '1';
             return;
         }
 
         // Filter posts
-        $('.post-item').each(function() {
-            const $post = $(this);
+        $('.post-item').forEach(post => {
             let showPost = true;
 
             if (selectedCategory) {
-                showPost = $post.find(`.category-tag[data-category-id="${selectedCategory}"]`).length > 0;
+                const categoryMatch = post.querySelector(
+                    `.category-tag[data-category-id="${selectedCategory}"]`
+                );
+                showPost = !!categoryMatch;
             }
 
             if (showPost && selectedTag) {
-                showPost = $post.find(`.category-tag[data-tag-id="${selectedTag}"]`).length > 0;
+                const tagMatch = post.querySelector(
+                    `.category-tag[data-tag-id="${selectedTag}"]`
+                );
+                showPost = !!tagMatch;
             }
 
             if (showPost) {
-                $post.show()
-                    .closest('.month-section').show()
-                    .closest('.year-section').show()
-                    .find('.year-content').removeClass('collapsed')
-                    .closest('.year-section').find('.toggle-icon').text('-');
+                post.style.display = '';
+                const monthSection = post.closest('.month-section');
+                const yearSection = post.closest('.year-section');
+                const yearContent = yearSection.querySelector('.year-content');
+                const toggleIcon = yearSection.querySelector('.toggle-icon');
+                
+                monthSection.style.display = '';
+                yearSection.style.display = '';
+                yearContent.classList.remove('collapsed');
+                toggleIcon.textContent = '-';
             } else {
-                $post.hide();
+                post.style.display = 'none';
             }
         });
 
         // Hide empty sections
-        $('.month-section').each(function() {
-            $(this).toggle($(this).find('.post-item:visible').length > 0);
+        $('.month-section').forEach(section => {
+            const visiblePosts = section.querySelectorAll('.post-item[style="display: none;"]').length;
+            section.style.display = visiblePosts === section.querySelectorAll('.post-item').length ? 'none' : '';
         });
 
-        $('.year-section').each(function() {
-            $(this).toggle($(this).find('.post-item:visible').length > 0);
+        $('.year-section').forEach(section => {
+            const visiblePosts = section.querySelectorAll('.post-item[style="display: none;"]').length;
+            section.style.display = visiblePosts === section.querySelectorAll('.post-item').length ? 'none' : '';
         });
 
         updateCounts();
-        $('#archive-content').css('opacity', '1');
-    });
+        archiveContent.style.opacity = '1';
+    }
 
+    // Update post counts
     function updateCounts() {
-        $('.year-section').each(function() {
-            const $section = $(this);
-            const visiblePosts = $section.find('.post-item:visible').length;
-            $section.find('.year-heading .post-count').text(`${visiblePosts} posts`);
+        $('.year-section').forEach(section => {
+            const visiblePosts = Array.from(section.querySelectorAll('.post-item'))
+                .filter(post => post.style.display !== 'none').length;
+            section.querySelector('.year-heading .post-count')
+                .textContent = `${visiblePosts} posts`;
             
-            $section.find('.month-section').each(function() {
-                const monthVisiblePosts = $(this).find('.post-item:visible').length;
-                $(this).find('.month-heading .post-count').text(`${monthVisiblePosts} posts`);
+            section.querySelectorAll('.month-section').forEach(monthSection => {
+                const monthVisiblePosts = Array.from(monthSection.querySelectorAll('.post-item'))
+                    .filter(post => post.style.display !== 'none').length;
+                monthSection.querySelector('.month-heading .post-count')
+                    .textContent = `${monthVisiblePosts} posts`;
             });
         });
     }
+
+    // Add filter event listeners
+    ['category-filter', 'tag-filter'].forEach(filterId => {
+        const filter = document.getElementById(filterId);
+        filter.addEventListener('change', updateFilters);
+        
+        // Add touch event handling for mobile
+        filter.addEventListener('touchend', function(e) {
+            e.stopPropagation();
+        }, { passive: true });
+    });
 });
 </script>
 
