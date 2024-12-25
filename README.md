@@ -2,6 +2,8 @@
 
 A modern, interactive date-based archive template for WordPress that organizes posts by year and month with filtering capabilities.
 
+![Enhanced Date Archive](https://github.com/gouliming4437/ArchiveTemplate4Wordpress/blob/main/Demo.png)
+
 ## Features
 
 - 📅 Hierarchical date-based organization (Year > Month > Posts)
